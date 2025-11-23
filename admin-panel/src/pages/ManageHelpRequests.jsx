@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css'; // Navbar styles
 import './ManageHelpRequests.css'; // New custom styles
-
-const API_URL = 'http://localhost:3000/api';
+import { API_BASE_URL } from '../config';
+const API_URL = ${API_BASE_URL}';
 
 export default function ManageHelpRequests({ onLogout }) {
   const [requests, setRequests] = useState([]);

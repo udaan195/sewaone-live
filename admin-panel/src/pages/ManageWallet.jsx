@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css';
 import './ManageJobs.css';
-
-const API_URL = 'http://localhost:3000/api/wallet';
+import { API_BASE_URL } from '../config';
+const API_URL = ${API_BASE_URL}/wallet';
 
 export default function ManageWallet({ onLogout }) {
   const [requests, setRequests] = useState([]);

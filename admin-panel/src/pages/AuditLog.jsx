@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css';
 import './ManageJobs.css';
-
-const API_URL = 'http://localhost:3000/api/admin';
+import { API_BASE_URL } from '../config';
+const API_URL = ${API_BASE_URL}/admin';
 
 export default function AuditLog({ onLogout }) {
   const [logs, setLogs] = useState([]);

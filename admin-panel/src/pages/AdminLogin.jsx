@@ -4,9 +4,9 @@ import { jwtDecode } from 'jwt-decode'; // Token decode karne ke liye
 
 // Apni Custom CSS import karein
 import './AdminLogin.css';
-
+import { API_BASE_URL } from '../config';
 // Backend API URL
-const API_URL = 'http://localhost:3000/api/admin';
+const API_URL = `${API_BASE_URL}/admin`;
 
 export default function AdminLogin({ onLoginSuccess }) {
   const [mobile, setMobile] = useState('');

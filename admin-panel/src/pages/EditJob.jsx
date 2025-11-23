@@ -3,9 +3,9 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css';
 import './AddJob.css';
-
-const API_URL = 'http://localhost:3000/api/jobs';
-const ADMIN_API_URL = 'http://localhost:3000/api/admin';
+import { API_BASE_URL } from '../config';
+const API_URL = ${API_BASE_URL}/jobs';
+const ADMIN_API_URL = `${API_BASE_URL}/admin';
 
 const PREDEFINED_SLOTS = [
   "10:00 AM - 12:00 PM",

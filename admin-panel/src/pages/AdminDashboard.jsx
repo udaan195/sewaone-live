@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import './AdminDashboard.css';
+import { API_BASE_URL } from '../config';
 
-const API_URL = 'http://localhost:3000/api/admin';
+const API_URL = `${API_BASE_URL}/admin`;
 
 export default function AdminDashboard({ onLogout }) {
   const [stats, setStats] = useState(null);

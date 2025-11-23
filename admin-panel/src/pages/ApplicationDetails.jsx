@@ -3,8 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css';
 import './AgentDashboard.css';
-
-const API_URL = 'http://localhost:3000/api';
+import { API_BASE_URL } from '../config';
+const API_URL = ${API_BASE_URL}';
 const CLOUD_NAME = "dka87xxxx"; 
 const UPLOAD_PRESET = "sewaone_preset"; 
 

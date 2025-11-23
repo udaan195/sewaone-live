@@ -4,8 +4,8 @@ import axios from 'axios';
 import './AdminDashboard.css';
 import './ManageJobs.css';
 import './AddJob.css';
-
-const API_URL = 'http://localhost:3000/api';
+import { API_BASE_URL } from '../config';
+const API_URL = ${API_BASE_URL}';
 
 export default function ManageUpdates({ onLogout }) {
   const location = useLocation();

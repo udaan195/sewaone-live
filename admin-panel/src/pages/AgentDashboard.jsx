@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './AgentDashboard.css';
-
-const API_URL = 'http://localhost:3000/api';
+import { API_BASE_URL } from '../config';
+const API_URL = `${API_BASE_URL}`;
 
 export default function AgentDashboard({ onLogout }) {
   const [isOnline, setIsOnline] = useState(false);

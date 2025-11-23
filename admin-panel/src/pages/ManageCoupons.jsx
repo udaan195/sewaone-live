@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css';
 import './ManageJobs.css'; // Reuse table styles
-
-const API_URL = 'http://localhost:3000/api/coupons';
+import { API_BASE_URL } from '../config';
+const API_URL = ${API_BASE_URL}/coupons';
 
 export default function ManageCoupons({ onLogout }) {
   const [coupons, setCoupons] = useState([]);

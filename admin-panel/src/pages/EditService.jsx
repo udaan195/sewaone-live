@@ -3,9 +3,9 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css';
 import './AddJob.css'; 
-
-const API_URL = 'http://localhost:3000/api/services';
-const ADMIN_API_URL = 'http://localhost:3000/api/admin';
+import { API_BASE_URL } from '../config';
+const API_URL = ${API_BASE_URL}/services';
+const ADMIN_API_URL = `${API_BASE_URL}/admin';
 
 export default function EditService({ onLogout }) {
   const { id } = useParams();

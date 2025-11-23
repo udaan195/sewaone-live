@@ -3,10 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css';
 import './AddJob.css'; 
-
-const API_URL = 'http://localhost:3000/api/services';
-const ADMIN_API_URL = 'http://localhost:3000/api/admin';
-const FORM_API_URL = 'http://localhost:3000/api/forms';
+import { API_BASE_URL } from '../config';
+const API_URL = `${API_BASE_URL}/services`;
+const ADMIN_API_URL = `${API_BASE_URL}/admin`;
+const FORM_API_URL = `${API_BASE_URL}/forms`;
 
 export default function AddService({ onLogout }) {
   const navigate = useNavigate();

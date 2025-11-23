@@ -4,8 +4,8 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 import './AdminDashboard.css';
 import './ManageJobs.css';
-
-const API_URL = 'http://localhost:3000/api';
+import { API_BASE_URL } from '../config';
+const API_URL = ${API_BASE_URL}';
 
 export default function ManageApplications({ onLogout }) {
   const [apps, setApps] = useState([]);
