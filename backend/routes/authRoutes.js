@@ -328,4 +328,19 @@ router.put('/save-push-token', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
+router.put('/update-push-token', auth, async (req, res) => {
+  try {
+    const { pushToken } = req.body;
+    
+    if (!pushToken) return res.status(400).json({ msg: 'No token provided' });
+
+    await User.findByIdAndUpdate(req.user.id, { pushToken });
+    
+    console.log(`📲 Push Token Updated for User: ${req.user.id}`);
+    res.json({ msg: 'Token Updated' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
 module.exports = router;
