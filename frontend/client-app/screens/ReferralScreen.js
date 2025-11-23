@@ -30,7 +30,7 @@ export default function ReferralScreen({ navigation }) {
   const onShare = async () => {
     try {
       await Share.share({
-        message: `Hey! I use SewaOne for all government forms. It's super easy.\n\nUse my code *${myCode}* to get ₹20 FREE in your wallet!\n\nDownload App: https://sewaone.com/download`, // Yahan baad mein Play Store link aayega
+        message: `Hey! I use SewaOne for all government forms. It's super easy.\n\nUse my code *${myCode}* to get ₹20 FREE in your wallet!\n\nDownload App: https://expo.dev/accounts/udaan195/projects/sewaone/builds/ca2c10ec-d42a-49b0-9357-e250a5d10ba6`, // Yahan baad mein Play Store link aayega
       });
     } catch (error) {
       alert(error.message);
