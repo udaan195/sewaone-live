@@ -1,0 +1,87 @@
+/* Yeh GovtJobDashboard.jsx ke liye CSS hai */
+
+/* Wapas jaane ka link */
+.back-link {
+  display: inline-block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #2563eb;
+  text-decoration: none;
+  margin-bottom: 1rem;
+}
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.page-title {
+  font-size: 1.75rem; /* 28px */
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 1rem; /* 16px */
+  color: #6b7280;
+  margin-bottom: 2rem; /* 32px */
+}
+
+/* 6 Cards ka Grid */
+.job-grid-container {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr); /* Mobile par 1 column */
+  gap: 1.5rem; /* 24px */
+}
+
+/* 6 Cards ki styling */
+.job-grid-card {
+  display: block;
+  background: #ffffff;
+  padding: 1.5rem; /* 24px */
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+  text-decoration: none;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+}
+
+.job-grid-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.07);
+  border-color: #2563eb;
+}
+
+.job-grid-card .card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e0e7ff; /* Halka blue */
+  color: #2563eb; /* Gehra blue */
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+.job-grid-card .card-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.job-grid-card h3 {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.job-grid-card p {
+  font-size: 0.875rem; /* 14px */
+  color: #6b7280;
+}
+
+/* Tablet aur Desktop ke liye 3 column */
+@media (min-width: 768px) {
+  .job-grid-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

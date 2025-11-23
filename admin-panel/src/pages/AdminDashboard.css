@@ -1,0 +1,231 @@
+/* Yeh Admin Dashboard ki custom CSS hai */
+
+/* 1. Poora page ka background */
+.dashboard-container {
+  min-height: 100vh;
+  background-color: #f3f4f6; /* Halka gray */
+}
+
+/* 2. Upar ka Navbar (Gradient) */
+.dashboard-nav {
+  background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
+  color: #ffffff;
+  padding: 0 2rem; /* 0px upar-neeche, 32px daayein-baayein */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.nav-content {
+  display: flex;
+  justify-content: space-between; /* Dono kono mein bhej do */
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto; /* Beech mein rakho */
+  height: 64px; /* 4rem */
+}
+
+.nav-title {
+  font-size: 1.5rem; /* 24px */
+  font-weight: 700;
+}
+
+/* 3. Logout Button */
+.logout-button {
+  padding: 0.5rem 1rem; /* 8px 16px */
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #ef4444; /* Laal rang */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.logout-button:hover {
+  background-color: #dc2626; /* Gehra laal */
+}
+
+/* 4. Main content area */
+.dashboard-main {
+  max-width: 1200px;
+  margin: 0 auto; /* Beech mein */
+  padding: 2rem; /* 32px */
+}
+
+/* 5. Safed card (Content box) */
+.content-card {
+  background: #ffffff;
+  padding: 2rem; /* 32px */
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.card-title {
+  font-size: 1.75rem; /* 28px */
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem; /* 8px */
+}
+
+.card-subtitle {
+  font-size: 1rem; /* 16px */
+  color: #6b7280;
+}/* ... (purana code jaise .dashboard-container, .dashboard-nav, .content-card etc. upar rahega) ... */
+
+/* --- YAHAN SE NAYA CODE ADD KAREIN --- */
+
+.section-title {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 600;
+  color: #374151;
+  margin-top: 2rem; /* 32px */
+  margin-bottom: 1rem; /* 16px */
+}
+
+/* Card grid ke liye */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr); /* Mobile par 1 column */
+  gap: 1.5rem; /* 24px */
+}
+
+/* Naye card ki styling */
+.module-card {
+  display: block;
+  background: #ffffff;
+  padding: 1.5rem; /* 24px */
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+  text-decoration: none;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+}
+
+.module-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.07);
+  border-color: #3B82F6; /* Blue border on hover */
+}
+
+.module-card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+.module-card-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.module-card h4 {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.module-card p {
+  font-size: 0.875rem; /* 14px */
+  color: #6b7280;
+}
+
+/* Disabled card ki styling */
+.module-card.disabled-card {
+  background-color: #f9fafb;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Tablet aur Desktop ke liye 3 column */
+@media (min-width: 768px) {
+  .module-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1f2937;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Colors for stats */
+.sc-blue { border-left: 4px solid #3b82f6; }
+.sc-green { border-left: 4px solid #10b981; }
+.sc-orange { border-left: 4px solid #f59e0b; }
+.sc-purple { border-left: 4px solid #8b5cf6; }
+
+/* --- DASHBOARD SECTIONS (Tables) --- */
+.dashboard-section {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+}
+
+.section-box {
+  flex: 1;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  min-width: 300px;
+}
+
+.box-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 10px;
+}
+
+/* Mini Table */
+.mini-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.mini-table th { text-align: left; font-size: 0.8rem; color: #9ca3af; padding-bottom: 8px; }
+.mini-table td { padding: 8px 0; font-size: 0.9rem; color: #1f2937; border-bottom: 1px solid #f9fafb; }
+.mini-table tr:last-child td { border-bottom: none; }
+
+.agent-status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+.dot-online { background-color: #10b981; }
+.dot-offline { background-color: #cbd5e1; }

@@ -1,0 +1,218 @@
+/* Form Card */
+.form-card {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Sections */
+.form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.form-section:last-child {
+  border-bottom: none;
+}
+
+.form-section h3 {
+  font-size: 1.1rem;
+  color: #111827;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+/* Basic Inputs */
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #374151;
+  font-weight: 500;
+}
+.form-group input, .form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+.form-group input:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Dynamic Rows Styling */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.add-row-btn {
+  background-color: #e0e7ff;
+  color: #4338ca;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.add-row-btn:hover {
+  background-color: #c7d2fe;
+}
+
+.dynamic-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.dynamic-row input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+}
+.dynamic-row input.full-width {
+  flex: 100%;
+}
+
+.remove-btn {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0; /* Button shrink nahi hona chahiye */
+}
+.remove-btn:hover {
+  background-color: #fecaca;
+}
+
+/* Submit Button */
+.form-actions {
+  text-align: center;
+  margin-top: 2rem;
+}
+.submit-btn {
+  background-color: #2563eb;
+  color: white;
+  padding: 12px 30px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+.submit-btn:hover {
+  background-color: #1d4ed8;
+}
+.submit-btn:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+/* ... (Purana code waise hi rahega) ... */
+
+/* --- TIME SLOT MANAGER STYLES --- */
+
+.slots-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  min-height: 50px;
+}
+
+.slot-tag {
+  background-color: #e0e7ff;
+  color: #3730a3;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.remove-x {
+  cursor: pointer;
+  color: #ef4444;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+.remove-x:hover {
+  color: #dc2626;
+}
+
+.slot-input-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.add-btn-small {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.add-btn-small:hover {
+  background-color: #2563eb;
+}
+
+.quick-slots {
+  margin-top: 10px;
+}
+
+.quick-slots small {
+  display: block;
+  margin-bottom: 5px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.preset-btn {
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 5px 10px;
+  border-radius: 4px;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.preset-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.preset-btn:disabled {
+  background-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: default;
+  text-decoration: line-through;
+}

@@ -1,0 +1,108 @@
+.tools-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tools-tabs button {
+  padding: 10px 20px;
+  border: none;
+  background: #e2e8f0;
+  border-radius: 25px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tools-tabs button.active {
+  background: #2563eb;
+  color: white;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+}
+
+.tool-card {
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  border: 1px solid #f1f5f9;
+}
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.row-inputs {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+.row-inputs div { flex: 1; }
+
+.tool-input-area input, .tool-input-area select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  margin-top: 5px;
+}
+
+.tool-preview-area {
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.preview-img {
+  max-width: 100%;
+  max-height: 250px;
+  object-fit: contain;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.download-btn {
+  margin-top: 15px;
+  background: #10b981;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.pdf-preview-grid {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.thumb-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.result-box {
+  margin-top: 20px;
+  background: #eff6ff;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 5px solid #2563eb;
+}
+.result-box h2 { color: #1e3c72; margin: 5px 0 0 0; }
+
+@media (max-width: 768px) {
+  .tool-grid { grid-template-columns: 1fr; }
+}
