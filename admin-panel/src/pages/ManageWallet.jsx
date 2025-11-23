@@ -4,7 +4,7 @@ import axios from 'axios';
 import './AdminDashboard.css';
 import './ManageJobs.css';
 import { API_BASE_URL } from '../config';
-const API_URL = ${API_BASE_URL}/wallet';
+const API_URL = `${API_BASE_URL}/wallet`;
 
 export default function ManageWallet({ onLogout }) {
   const [requests, setRequests] = useState([]);

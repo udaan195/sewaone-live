@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import './AdminDashboard.css';
 import './ManageJobs.css'; // Styling reuse
 import { API_BASE_URL } from '../config';
-const API_URL = ${API_BASE_URL}/admin';
+const API_URL = `${API_BASE_URL}/admin`;
 
 export default function ManageAgents({ onLogout }) {
   const [agents, setAgents] = useState([]);

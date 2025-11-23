@@ -4,7 +4,7 @@ import axios from 'axios';
 import './AdminDashboard.css';
 import './ManageJobs.css';
 import { API_BASE_URL } from '../config';
-const API_URL = ${API_BASE_URL}/admin';
+const API_URL = `${API_BASE_URL}/admin`;
 
 export default function AuditLog({ onLogout }) {
   const [logs, setLogs] = useState([]);

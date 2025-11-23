@@ -4,7 +4,7 @@ import axios from 'axios';
 import './AdminDashboard.css';
 import './AgentDashboard.css';
 import { API_BASE_URL } from '../config';
-const API_URL = ${API_BASE_URL}';
+const API_URL = `${API_BASE_URL}`;
 const CLOUD_NAME = "dka87xxxx"; 
 const UPLOAD_PRESET = "sewaone_preset"; 
 

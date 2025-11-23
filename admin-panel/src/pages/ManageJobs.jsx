@@ -4,7 +4,7 @@ import axios from 'axios';
 import './AdminDashboard.css';
 import './ManageJobs.css';
 import { API_BASE_URL } from '../config';
-const API_URL = ${API_BASE_URL}/jobs';
+const API_URL = `${API_BASE_URL}/jobs`;
 
 export default function ManageJobs({ onLogout }) {
   const [jobs, setJobs] = useState([]);

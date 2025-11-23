@@ -4,7 +4,7 @@ import axios from 'axios';
 import './AdminDashboard.css';
 import './ManageJobs.css'; // Styles reuse kar rahe hain
 import { API_BASE_URL } from '../config';
-const API_URL = ${API_BASE_URL}/admin';
+const API_URL = `${API_BASE_URL}/admin`;
 
 export default function ManageMasterData({ onLogout }) {
   const [type, setType] = useState('document'); // 'document' ya 'question'

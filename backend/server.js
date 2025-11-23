@@ -38,6 +38,9 @@ try {
     console.error("❌ Route Import Error:", error.message);
 }
 
-app.listen(PORT, '127.0.0.1', () => {
-  console.log(`Server is running on http://127.0.0.1:${PORT}`);
+// ✅ FIX: Use process.env.PORT for Render and '0.0.0.0' for binding
+
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });

@@ -4,8 +4,8 @@ import axios from 'axios';
 import './AdminDashboard.css';
 import './AddJob.css';
 import { API_BASE_URL } from '../config';
-const API_URL = ${API_BASE_URL}/forms';
-const ADMIN_API_URL = ${API_BASE_URL}/admin';
+const API_URL = `${API_BASE_URL}/forms`;
+const ADMIN_API_URL = `${API_BASE_URL}/admin`;
 
 export default function FormBuilder({ onLogout }) {
   const [loading, setLoading] = useState(false);

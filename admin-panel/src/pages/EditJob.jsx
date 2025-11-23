@@ -4,8 +4,8 @@ import axios from 'axios';
 import './AdminDashboard.css';
 import './AddJob.css';
 import { API_BASE_URL } from '../config';
-const API_URL = ${API_BASE_URL}/jobs';
-const ADMIN_API_URL = `${API_BASE_URL}/admin';
+const API_URL = `${API_BASE_URL}/jobs`;
+const ADMIN_API_URL = `${API_BASE_URL}/admin`;
 
 const PREDEFINED_SLOTS = [
   "10:00 AM - 12:00 PM",

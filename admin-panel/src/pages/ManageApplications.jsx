@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import './AdminDashboard.css';
 import './ManageJobs.css';
 import { API_BASE_URL } from '../config';
-const API_URL = ${API_BASE_URL}';
+const API_URL = `${API_BASE_URL}`;
 
 export default function ManageApplications({ onLogout }) {
   const [apps, setApps] = useState([]);
