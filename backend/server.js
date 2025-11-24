@@ -28,6 +28,7 @@ try {
     app.use('/api/wallet', require('./routes/walletRoutes'));
     app.use('/api/coupons', require('./routes/couponRoutes')); 
     app.use('/api/forms', require('./routes/formRoutes')); 
+    app.use('/api/chat', require('./routes/chatRoutes'));
     
     // YAHAN ADMIN ROUTES USE KARNA HAI
     const adminRouter = require('./routes/adminRoutes');
