@@ -8,8 +8,8 @@ import { Picker } from '@react-native-picker/picker';
 import API_URL from '../config/api';
 
 // Cloudinary Config
-const CLOUD_NAME = "dka87xxxx"; 
-const UPLOAD_PRESET = "sewaone_preset";
+const CLOUD_NAME = "dxuurwexl"; 
+const UPLOAD_PRESET = "edusphere_uploads";
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
 export default function ServiceWizardScreen({ route, navigation }) {
