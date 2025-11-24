@@ -1,83 +1,72 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css';
-import './AddJob.css'; 
-import { API_BASE_URL } from '../config';
+import './AddJob.css';
+import { API_BASE_URL } from '../config'; // Config se import
+
 const API_URL = `${API_BASE_URL}/services`;
 const ADMIN_API_URL = `${API_BASE_URL}/admin`;
-const FORM_API_URL = `${API_BASE_URL}/forms`;
 
 export default function AddService({ onLogout }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-
-  // Data States
   const [masterDocs, setMasterDocs] = useState([]);
-  const [formTemplates, setFormTemplates] = useState([]); 
   const [docInput, setDocInput] = useState('');
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: 'Citizen Service',
-    subCategory: '', 
+    subCategory: '',
     officialFee: 0,
     serviceCharge: 50,
     instructions: 'Please upload clear documents.',
     requiredDocuments: [],
-    linkedFormId: '' // Template ID
+    requiredFields: []
   });
 
-  // Load Master Data & Templates
-  useEffect(() => {
-    const loadData = async () => {
+  React.useEffect(() => {
+    const loadMaster = async () => {
       try {
         const token = localStorage.getItem('adminToken');
-        const headers = { headers: { 'x-auth-token': token } };
-        
-        // Docs
-        const docRes = await axios.get(`${ADMIN_API_URL}/master-data/document`, headers);
-        setMasterDocs(Array.isArray(docRes.data) ? docRes.data : []);
-        
-        // Templates
-        const formRes = await axios.get(`${FORM_API_URL}/list`, headers);
-        setFormTemplates(Array.isArray(formRes.data) ? formRes.data : []);
+        const res = await axios.get(`${ADMIN_API_URL}/master-data/document`, { headers: { 'x-auth-token': token } });
+        setMasterDocs(Array.isArray(res.data) ? res.data : []);
       } catch(e) {}
     };
-    loadData();
+    loadMaster();
   }, []);
 
+  // --- ✅ UPDATED SUB-CATEGORIES LOGIC ---
   const getSubCategories = () => {
-      if (formData.category === 'Citizen Service') return ['Identity Proof', 'Certificates', 'Transport/Driving', 'Police/Legal', 'Others'];
-      if (formData.category === 'Government Scheme') return ['Farmers', 'Housing', 'Health', 'Students/Youth', 'Pension', 'Women', 'Others'];
-      return ['General', 'Other'];
+      if (formData.category === 'Citizen Service') {
+          return ['Identity Proof', 'Certificates', 'Transport/Driving', 'Police/Legal', 'Others'];
+      } 
+      else if (formData.category === 'Government Scheme') {
+          return ['Farmers', 'Housing', 'Health', 'Students/Youth', 'Pension', 'Women', 'Others'];
+      } 
+      else if (formData.category === 'Other') {
+          // ✅ Yahan naye options jode gaye hain
+          return ['PF Service', 'Tax Service', 'Business Service', 'Insurance', 'Licenses', 'General'];
+      }
+      else {
+          return ['General'];
+      }
   };
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // Smart Doc Logic
   const handleAddDocSmart = async () => {
     if (!docInput.trim()) return;
     if (formData.requiredDocuments.includes(docInput)) { setDocInput(''); return; }
-    const exists = masterDocs.find(d => d.label.toLowerCase() === docInput.toLowerCase());
-    if (exists) {
-        setFormData({ ...formData, requiredDocuments: [...formData.requiredDocuments, exists.label] });
-    } else {
-        if (window.confirm(`"${docInput}" is new. Add to Master List?`)) {
-            try {
-                const token = localStorage.getItem('adminToken');
-                await axios.post(`${ADMIN_API_URL}/master-data/add`, { type: 'document', label: docInput }, { headers: { 'x-auth-token': token } });
-                setMasterDocs([...masterDocs, { label: docInput, key: docInput.toLowerCase().replace(/ /g,'_') }]);
-                setFormData({ ...formData, requiredDocuments: [...formData.requiredDocuments, docInput] });
-            } catch (e) { setFormData({ ...formData, requiredDocuments: [...formData.requiredDocuments, docInput] }); }
-        } else {
-            setFormData({ ...formData, requiredDocuments: [...formData.requiredDocuments, docInput] });
-        }
-    }
+    setFormData({ ...formData, requiredDocuments: [...formData.requiredDocuments, docInput] });
     setDocInput('');
   };
   const removeDoc = (i) => { const u=[...formData.requiredDocuments]; u.splice(i,1); setFormData({...formData, requiredDocuments:u}); };
+
+  const addField = () => setFormData({...formData, requiredFields: [...formData.requiredFields, { label: '', type: 'text', required: true }]});
+  const updateField = (i, k, v) => { const u = [...formData.requiredFields]; u[i][k] = v; setFormData({...formData, requiredFields: u}); };
+  const removeField = (i) => { const u = [...formData.requiredFields]; u.splice(i, 1); setFormData({...formData, requiredFields: u}); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -102,12 +91,15 @@ export default function AddService({ onLogout }) {
             
             <div className="form-section">
                <h3>Basic Details</h3>
-               <div className="form-group"><label>Title</label><input name="title" value={formData.title} onChange={handleChange} required placeholder="Ex: New PAN Card" /></div>
+               <div className="form-group"><label>Title</label><input name="title" value={formData.title} onChange={handleChange} required placeholder="Ex: PF Withdrawal" /></div>
+               
                <div style={{display:'flex', gap:10}}>
                    <div className="form-group" style={{flex:1}}>
                        <label style={{color:'#2563eb', fontWeight:'bold'}}>Category</label>
                        <select name="category" value={formData.category} onChange={handleChange} style={{width:'100%', padding:10, borderRadius:5, border:'1px solid #ccc'}}>
-                           <option value="Citizen Service">Citizen Service</option><option value="Government Scheme">Government Scheme</option><option value="Other">Other</option>
+                           <option value="Citizen Service">Citizen Service</option>
+                           <option value="Government Scheme">Government Scheme</option>
+                           <option value="Other">Other Services</option> {/* Name updated */}
                        </select>
                    </div>
                    <div className="form-group" style={{flex:1}}>
@@ -121,41 +113,38 @@ export default function AddService({ onLogout }) {
                <div className="form-group"><label>Description</label><textarea name="description" value={formData.description} onChange={handleChange} rows="2" /></div>
             </div>
 
-            <div className="form-section" style={{background:'#f0fdf4', borderLeft:'4px solid #16a34a'}}>
+            <div className="form-section" style={{background:'#f0fdf4'}}>
                <h3>Fees Structure</h3>
                <div style={{display:'flex', gap:10}}>
                    <div className="form-group" style={{flex:1}}><label>Official Fee (₹)</label><input type="number" name="officialFee" value={formData.officialFee} onChange={handleChange} /></div>
-                   <div className="form-group" style={{flex:1}}><label>Service Charge (₹)</label><input type="number" name="serviceCharge" value={formData.serviceCharge} onChange={handleChange} style={{fontWeight:'bold', color:'green'}} /></div>
+                   <div className="form-group" style={{flex:1}}><label>Service Charge (₹)</label><input type="number" name="serviceCharge" value={formData.serviceCharge} onChange={handleChange} /></div>
                </div>
             </div>
 
             <div className="form-section">
-               <h3>Required Documents</h3>
+               <h3>Documents</h3>
                <div className="slot-input-box">
-                   <input list="master-docs" value={docInput} onChange={e=>setDocInput(e.target.value)} placeholder="Type or Select..." style={{flex:1}}/>
+                   <input list="master-docs" value={docInput} onChange={e=>setDocInput(e.target.value)} placeholder="Add Document..." style={{flex:1}}/>
                    <datalist id="master-docs">{masterDocs.map(d=><option key={d._id} value={d.label}/>)}</datalist>
                    <button type="button" className="add-btn-small" onClick={handleAddDocSmart}>+ Add</button>
                </div>
                <div className="slots-container">{formData.requiredDocuments.map((doc, i)=>(<div key={i} className="slot-tag">{doc}<span onClick={()=>removeDoc(i)} className="remove-x">×</span></div>))}</div>
             </div>
 
-            {/* --- TEMPLATE SELECTOR --- */}
-            <div className="form-section" style={{borderLeft:'4px solid #8b5cf6', paddingLeft:15, background:'#f5f3ff'}}>
-               <h3 style={{color:'#5b21b6'}}>Application Form</h3>
-               <p style={{fontSize:12, color:'#666', marginBottom:10}}>Link a reusable form template (e.g. KYC Form).</p>
-               
-               <div className="form-group">
-                   <label style={{fontWeight:'bold'}}>Select Template:</label>
-                   <select name="linkedFormId" value={formData.linkedFormId} onChange={handleChange} style={{width:'100%', padding:12, borderRadius:6, border:'2px solid #8b5cf6', fontSize:16}}>
-                       <option value="">-- No Form (Docs Only) --</option>
-                       {formTemplates.map(t => <option key={t._id} value={t._id}>{t.title}</option>)}
-                   </select>
-                   <div style={{marginTop:10}}><Link to="/forms/builder" target="_blank" style={{color:'#2563eb', fontSize:12, textDecoration:'underline'}}>+ Create New Template</Link></div>
-               </div>
+            <div className="form-section">
+               <h3>Form Fields</h3>
+               {formData.requiredFields.map((field, i) => (
+                   <div key={i} style={{display:'flex', gap:5, marginBottom:5}}>
+                       <input placeholder="Label" value={field.label} onChange={e=>updateField(i,'label',e.target.value)} style={{flex:2, padding:8}}/>
+                       <select value={field.type} onChange={e=>updateField(i,'type',e.target.value)} style={{flex:1, padding:8}}><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option></select>
+                       <button type="button" onClick={()=>removeField(i)} style={{color:'red'}}>×</button>
+                   </div>
+               ))}
+               <button type="button" onClick={addField} className="add-btn-small">+ Add Field</button>
             </div>
 
-            <div className="form-group"><label>Instructions</label><textarea name="instructions" value={formData.instructions} onChange={handleChange} rows="2" /></div>
-            <div className="form-actions"><button type="submit" className="submit-btn" disabled={loading}>{loading?'Saving...':'Publish Service'}</button></div>
+            <div className="form-group"><label>Instructions</label><textarea name="instructions" value={formData.instructions} onChange={handleChange} /></div>
+            <div className="form-actions"><button type="submit" className="submit-btn" disabled={loading}>{loading?'Saving...':'Publish'}</button></div>
           </form>
         </div>
       </main>
