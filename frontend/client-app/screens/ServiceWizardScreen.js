@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import API_URL from '../config/api';
 
+// Cloudinary Config
 const CLOUD_NAME = "dka87xxxx"; 
 const UPLOAD_PRESET = "sewaone_preset";
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
@@ -29,9 +30,7 @@ export default function ServiceWizardScreen({ route, navigation }) {
   const totalFee = baseOfficialFee + baseServiceFee;
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  
-  // --- FIX: LOCK TO PREVENT DOUBLE SUBMIT ---
-  const isSubmitting = useRef(false); 
+  const isSubmitting = useRef(false); // Double submit lock
 
   // --- 1. LOAD TEMPLATE ---
   useEffect(() => {
@@ -44,7 +43,7 @@ export default function ServiceWizardScreen({ route, navigation }) {
                     const data = await res.json();
                     setTemplateSchema(data.sections || []);
                 }
-            } catch(e) { console.error("Template Fetch Error", e); } 
+            } catch(e) { console.error(e); } 
             finally { setLoadingTemplate(false); }
         } 
         else if (service.requiredFields && service.requiredFields.length > 0) {
@@ -72,12 +71,11 @@ export default function ServiceWizardScreen({ route, navigation }) {
     fetchTemplate();
   }, [service]);
 
-  // Animation Loop & Trigger Search
+  // Animation Loop
   useEffect(() => { 
       if (currentStep === 4) { 
-          // --- FIX: Check Lock ---
-          if (isSubmitting.current) return; // Agar pehle se chal raha hai to ruk jao
-          isSubmitting.current = true; // Lock lagao
+          if (isSubmitting.current) return;
+          isSubmitting.current = true;
 
           Animated.loop(
               Animated.sequence([
@@ -85,7 +83,6 @@ export default function ServiceWizardScreen({ route, navigation }) {
                   Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
               ])
           ).start(); 
-          
           performLiveSearch(); 
       } 
   }, [currentStep]);
@@ -101,6 +98,59 @@ export default function ServiceWizardScreen({ route, navigation }) {
     } catch (err) {}
   };
 
+  // --- VALIDATION LOGIC (NEW) ---
+  
+  // Step 2 Validation (Details)
+  const validateStep2 = () => {
+      let isValid = true;
+      let missingField = '';
+
+      // Loop through all sections and fields
+      for (const section of templateSchema) {
+          for (const field of section.fields) {
+              // Check if field is required AND empty
+              if (field.isRequired) {
+                  const val = formData[field.label];
+                  if (!val || val.toString().trim() === '') {
+                      isValid = false;
+                      missingField = field.label;
+                      break; // Stop loop on first error
+                  }
+              }
+          }
+          if (!isValid) break;
+      }
+
+      if (!isValid) {
+          Alert.alert("Missing Detail", `Please fill the required field: ${missingField}`);
+      } else {
+          setCurrentStep(3); // Go to Next Step
+      }
+  };
+
+  // Step 3 Validation (Documents)
+  const validateStep3 = () => {
+      let missingDoc = '';
+      let isValid = true;
+
+      if (service.requiredDocuments && service.requiredDocuments.length > 0) {
+          for (const doc of service.requiredDocuments) {
+              if (!uploadedDocs[doc]) {
+                  isValid = false;
+                  missingDoc = doc;
+                  break;
+              }
+          }
+      }
+
+      if (!isValid) {
+          Alert.alert("Missing Document", `Please upload: ${missingDoc}`);
+      } else {
+          setCurrentStep(4); // Start Submission
+      }
+  };
+
+  // --- SUBMIT LOGIC ---
   const uploadToCloudinary = async (fileObj) => {
     if (fileObj.type === 'saved' || fileObj.uri.startsWith('http')) return fileObj.uri;
     const data = new FormData();
@@ -113,7 +163,6 @@ export default function ServiceWizardScreen({ route, navigation }) {
     } catch (err) { return null; }
   };
 
-  // --- SUBMIT LOGIC ---
   const performLiveSearch = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -149,20 +198,19 @@ export default function ServiceWizardScreen({ route, navigation }) {
                   setAssignedAgent(null);
               }
               setCurrentStep(5);
-              // Note: isSubmitting.current ko true hi rehne do taaki user back karke dubara submit na kare
           } else {
               Alert.alert("Error", resData.msg || "Submission failed");
               setCurrentStep(3);
-              isSubmitting.current = false; // Error aaya to lock khol do taaki retry kar sake
+              isSubmitting.current = false;
           }
       } catch (e) {
           Alert.alert("Server Error", "Backend crashed. Check logs.");
           setCurrentStep(3);
-          isSubmitting.current = false; // Retry allow karo
+          isSubmitting.current = false;
       }
     } catch (error) { 
         setCurrentStep(3); 
-        isSubmitting.current = false; // Retry allow karo
+        isSubmitting.current = false;
         Alert.alert("Network Error", "Failed to connect"); 
     }
   };
@@ -216,7 +264,11 @@ export default function ServiceWizardScreen({ route, navigation }) {
       )}
 
       <View style={styles.feeBox}><Text style={{fontWeight:'bold'}}>Total Fee: ₹{totalFee}</Text></View>
-      <TouchableOpacity style={styles.mainBtn} onPress={()=>setCurrentStep(3)}><Text style={styles.btnText}>Next: Upload Docs &rarr;</Text></TouchableOpacity>
+      
+      {/* ✅ USE VALIDATION FUNCTION HERE */}
+      <TouchableOpacity style={styles.mainBtn} onPress={validateStep2}>
+          <Text style={styles.btnText}>Next: Upload Docs &rarr;</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 
@@ -227,14 +279,18 @@ export default function ServiceWizardScreen({ route, navigation }) {
         const fileObj = uploadedDocs[doc];
         return (
             <View key={i} style={styles.docRow}>
-                <Text style={styles.docLabel}>{doc}</Text>
+                <Text style={styles.docLabel}>{doc} <Text style={{color:'red'}}>*</Text></Text>
                 <TouchableOpacity onPress={() => pickFile(doc)} style={[styles.uploadBtn, fileObj && styles.uploadedBtn]}>
                     {fileObj ? <CheckCircle color="green" size={20}/> : <Upload color="#fff" size={20}/>}
                 </TouchableOpacity>
             </View>
         );
       })}
-      <TouchableOpacity style={styles.mainBtn} onPress={()=>setCurrentStep(4)}><Text style={styles.btnText}>Submit & Search Agent</Text></TouchableOpacity>
+      
+      {/* ✅ USE VALIDATION FUNCTION HERE */}
+      <TouchableOpacity style={styles.mainBtn} onPress={validateStep3}>
+          <Text style={styles.btnText}>Submit & Search Agent</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 
