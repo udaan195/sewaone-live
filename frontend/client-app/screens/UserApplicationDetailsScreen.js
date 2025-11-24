@@ -23,7 +23,8 @@ export default function UserApplicationDetailsScreen({ route, navigation }) {
   const [appData, setAppData] = useState(null);
   const [jobUpdates, setJobUpdates] = useState([]); 
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+const [newMessage, setNewMessage] = useState('');
+const [sending, setSending] = useState(false); // NEW: sending state
   const [loading, setLoading] = useState(true);
   
   // Payment States
@@ -47,10 +48,18 @@ export default function UserApplicationDetailsScreen({ route, navigation }) {
   const scrollViewRef = useRef();
 
   useEffect(() => {
-    fetchDetails();
-    const chatInterval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(chatInterval);
-  }, [applicationId]);
+  fetchDetails();
+  fetchChat(); // first load
+  const interval = setInterval(fetchChat, 5000); // 5 sec like first file
+  return () => clearInterval(interval);
+}, [applicationId]);
+
+// NEW: messages change hone pe auto scroll
+useEffect(() => {
+  if (scrollViewRef.current) {
+    scrollViewRef.current.scrollToEnd({ animated: true });
+  }
+}, [messages]);
 
   // Fetch Wallet Balance when Modal Opens
   useEffect(() => {
@@ -92,26 +101,52 @@ export default function UserApplicationDetailsScreen({ route, navigation }) {
     } catch (e) { console.error(e); }
   };
 
-  const fetchMessages = async () => {
-    try {
-      const res = await fetch(`${API_URL}/chat/${applicationId}`);
-      setMessages(await res.json());
-    } catch(e) {}
-  };
+  const fetchChat = async () => {
+  try {
+    const res = await fetch(`${API_URL}/chat/${applicationId}`);
+    if (res.ok) {
+      const data = await res.json();
+      setMessages(data);
+    }
+  } catch (e) {
+    console.log("Chat Load Error", e);
+  }
+};
 
   const handleSend = async () => {
-    if(!newMessage.trim()) return;
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      await fetch(`${API_URL}/chat/user/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-        body: JSON.stringify({ applicationId, message: newMessage })
-      });
-      setNewMessage('');
-      fetchMessages();
-    } catch(e) { Alert.alert("Error", "Message not sent"); }
-  };
+  if (!newMessage.trim()) return;
+
+  setSending(true);
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+
+    const res = await fetch(`${API_URL}/chat/send`, {  // SAME AS FIRST FILE
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token,
+      },
+      body: JSON.stringify({
+        applicationId: applicationId,
+        message: newMessage,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setNewMessage('');  // clear input
+      fetchChat();        // refresh messages
+    } else {
+      Alert.alert('Error', data.msg || 'Message not sent');
+    }
+  } catch (e) {
+    console.error(e);
+    Alert.alert('Error', 'Network connection failed');
+  } finally {
+    setSending(false);
+  }
+};
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -351,9 +386,24 @@ export default function UserApplicationDetailsScreen({ route, navigation }) {
          {isChatActive ? (
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
                 <View style={styles.inputArea}>
-                    <TextInput style={styles.input} placeholder="Type..." value={newMessage} onChangeText={setNewMessage}/>
-                    <TouchableOpacity style={styles.sendBtn} onPress={handleSend}><Send color="#fff" size={20} /></TouchableOpacity>
-                </View>
+  <TextInput
+    style={styles.input}
+    placeholder="Type..."
+    value={newMessage}
+    onChangeText={setNewMessage}
+  />
+  <TouchableOpacity
+    style={[styles.sendBtn, sending && { opacity: 0.5 }]}
+    onPress={handleSend}
+    disabled={sending}
+  >
+    {sending ? (
+      <ActivityIndicator color="#fff" size="small" />
+    ) : (
+      <Send color="#fff" size={20} />
+    )}
+  </TouchableOpacity>
+</View>
             </KeyboardAvoidingView>
          ) : <View style={styles.closedBar}><Text style={{color:'#6b7280'}}>Chat disabled.</Text></View>}
       </View>
