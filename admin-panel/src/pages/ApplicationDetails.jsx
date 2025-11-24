@@ -28,10 +28,12 @@ export default function ApplicationDetails({ onLogout }) {
   const chatEndRef = useRef(null);
   
   // Completion
-  const [completeMode, setCompleteMode] = useState('link'); 
-  const [finalPdfLink, setFinalPdfLink] = useState('');
-  const [uploadingPdf, setUploadingPdf] = useState(false);
-  const [status, setStatus] = useState('');
+  // Completion
+const [completeMode, setCompleteMode] = useState('link'); // 'link' or 'upload'
+const [manualLink, setManualLink] = useState('');         // Text se diya hua link
+const [uploadedFileUrl, setUploadedFileUrl] = useState(''); // Cloudinary ka URL
+const [uploadingPdf, setUploadingPdf] = useState(false);
+const [status, setStatus] = useState('');
   
   // Private Notes
   const [agentNotes, setAgentNotes] = useState('');
@@ -138,34 +140,68 @@ export default function ApplicationDetails({ onLogout }) {
   };
 
   const handleFileUpload = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setUploadingPdf(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', UPLOAD_PRESET);
+    
+    try {
+      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, { 
+        method: 'POST', 
+        body: formData 
+      });
+      const cloudData = await cloudRes.json();
       
-      setUploadingPdf(true);
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', UPLOAD_PRESET);
-      
-      try {
-        const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, { method: 'POST', body: formData });
-        const cloudData = await cloudRes.json();
-        setFinalPdfLink(cloudData.secure_url);
-        alert("PDF Uploaded!");
-      } catch(err) { alert("Upload failed"); } finally { setUploadingPdf(false); }
-  };
+      if (cloudData.secure_url) {
+        setUploadedFileUrl(cloudData.secure_url);   // sirf file URL yahan save
+        alert("PDF Uploaded Successfully! Now click Complete.");
+      } else {
+        alert("Upload failed. Please try again.");
+      }
+    } catch(err) { 
+      alert("Upload failed"); 
+    } finally { 
+      setUploadingPdf(false); 
+    }
+};
 
   const handleComplete = async () => {
-      if(!app.paymentDetails?.isPaid) return alert("Cannot complete! Payment is pending.");
-      if(!finalPdfLink) return alert("Please enter PDF Link or Upload File first.");
-      if(!window.confirm("Are you sure you want to COMPLETE this order?")) return;
-      
-      try {
-        const token = localStorage.getItem('adminToken');
-        await axios.post(`${API_URL}/applications/complete`, { applicationId: id, pdfUrl: finalPdfLink }, { headers: { 'x-auth-token': token } });
-        alert("✅ Order Completed!"); 
-        fetchDetail();
-      } catch(e) { alert("Error completing order"); }
-  };
+    if (!app.paymentDetails?.isPaid) {
+        return alert("Cannot complete! Payment is pending.");
+    }
+
+    let finalPdfLink = '';
+
+    if (completeMode === 'link') {
+        if (!manualLink.trim()) {
+            return alert("Please enter the PDF Link.");
+        }
+        finalPdfLink = manualLink.trim();
+    } else {
+        if (!uploadedFileUrl) {
+            return alert("Please upload a PDF file first.");
+        }
+        finalPdfLink = uploadedFileUrl;
+    }
+
+    if (!window.confirm("Are you sure you want to COMPLETE this order?")) return;
+    
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.post(
+        `${API_URL}/applications/complete`, 
+        { applicationId: id, pdfUrl: finalPdfLink }, 
+        { headers: { 'x-auth-token': token } }
+      );
+      alert("✅ Order Completed!"); 
+      fetchDetail();
+    } catch(e) { 
+      alert("Error completing order"); 
+    }
+};
 
   const handleStatusUpdate = async (newStat) => {
       let reason = "";
@@ -370,19 +406,81 @@ export default function ApplicationDetails({ onLogout }) {
                         
                         {/* UPLOAD LOGIC (Only if Paid) */}
                         {app.paymentDetails?.isPaid ? (
-                            <div style={{paddingTop:20, borderTop:'2px dashed #ccc'}}>
-                                <label style={{display:'block', fontWeight:'bold', marginBottom:10, color:'#15803d'}}>Upload Final PDF</label>
-                                <div style={{display: 'flex', gap: '10px', alignItems:'center'}}>
-                                    {completeMode === 'link' ? <input type="text" placeholder="Link..." value={finalPdfLink} onChange={(e)=>setFinalPdfLink(e.target.value)} style={{flex:1, padding:10, border:'1px solid #ccc', borderRadius:5}} /> : <input type="file" accept="application/pdf" onChange={handleFileUpload} style={{flex:1}} />}
-                                    <button onClick={handleComplete} disabled={uploadingPdf} style={{padding:'10px 20px', background:'#15803d', color:'#fff', border:'none', borderRadius:5, fontWeight:'bold', cursor:'pointer'}}>{uploadingPdf?'Wait...':'Complete'}</button>
-                                </div>
-                                <div style={{marginTop:5}}><label><input type="radio" name="m" checked={completeMode==='link'} onChange={()=>setCompleteMode('link')}/> Link</label> <label><input type="radio" name="m" checked={completeMode==='upload'} onChange={()=>setCompleteMode('upload')}/> File</label></div>
-                            </div>
-                        ) : (
-                            <div style={{padding:10, background:'#fee2e2', color:'#dc2626', borderRadius:5, border:'1px solid #fca5a5'}}>
-                                🔒 <strong>Locked:</strong> Complete payment verification first.
-                            </div>
-                        )}
+                            {/* UPLOAD / LINK LOGIC (Only if Paid) */}
+{app.paymentDetails?.isPaid ? (
+    <div style={{paddingTop:20, borderTop:'2px dashed #ccc'}}>
+        <label style={{display:'block', fontWeight:'bold', marginBottom:10, color:'#15803d'}}>
+            Complete Order & Send Result
+        </label>
+
+        {/* Mode Toggle */}
+        <div style={{display:'flex', gap:15, marginBottom:15}}>
+            <label style={{display:'flex', alignItems:'center', gap:5, cursor:'pointer'}}>
+                <input 
+                    type="radio" 
+                    name="mode" 
+                    checked={completeMode === 'link'} 
+                    onChange={() => setCompleteMode('link')} 
+                />
+                Enter Link
+            </label>
+            <label style={{display:'flex', alignItems:'center', gap:5, cursor:'pointer'}}>
+                <input 
+                    type="radio" 
+                    name="mode" 
+                    checked={completeMode === 'upload'} 
+                    onChange={() => setCompleteMode('upload')} 
+                />
+                Upload File
+            </label>
+        </div>
+
+        <div style={{display: 'flex', gap: '10px', alignItems:'center'}}>
+            {completeMode === 'link' ? (
+                <input 
+                    type="text" 
+                    placeholder="Paste Drive/PDF Link here..." 
+                    value={manualLink} 
+                    onChange={(e)=>setManualLink(e.target.value)} 
+                    style={{flex:1, padding:10, border:'1px solid #ccc', borderRadius:5}} 
+                />
+            ) : (
+                <div style={{flex:1}}>
+                    <input 
+                        type="file" 
+                        accept="application/pdf,image/*" 
+                        onChange={handleFileUpload} 
+                    />
+                    {uploadedFileUrl && (
+                        <span style={{fontSize:11, color:'green', display:'block', marginTop:5}}>
+                            ✅ Uploaded
+                        </span>
+                    )}
+                </div>
+            )}
+
+            <button 
+                onClick={handleComplete} 
+                disabled={uploadingPdf} 
+                style={{
+                    padding:'10px 20px', 
+                    background:'#15803d', 
+                    color:'#fff', 
+                    border:'none', 
+                    borderRadius:5, 
+                    fontWeight:'bold', 
+                    cursor:'pointer'
+                }}
+            >
+                {uploadingPdf ? 'Wait...' : 'Complete'}
+            </button>
+        </div>
+    </div>
+) : (
+    <div style={{padding:10, background:'#fee2e2', color:'#dc2626', borderRadius:5, border:'1px solid #fca5a5'}}>
+        🔒 <strong>Locked:</strong> Complete payment verification first.
+    </div>
+)}
                     </>
                 )}
             </div>
