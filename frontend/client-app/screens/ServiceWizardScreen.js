@@ -7,7 +7,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import API_URL from '../config/api';
 
-// Cloudinary Config
 const CLOUD_NAME = "dka87xxxx"; 
 const UPLOAD_PRESET = "sewaone_preset";
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
@@ -30,6 +29,9 @@ export default function ServiceWizardScreen({ route, navigation }) {
   const totalFee = baseOfficialFee + baseServiceFee;
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  
+  // --- FIX: LOCK TO PREVENT DOUBLE SUBMIT ---
+  const isSubmitting = useRef(false); 
 
   // --- 1. LOAD TEMPLATE ---
   useEffect(() => {
@@ -41,14 +43,9 @@ export default function ServiceWizardScreen({ route, navigation }) {
                 if(res.ok) {
                     const data = await res.json();
                     setTemplateSchema(data.sections || []);
-                } else {
-                    console.log("Failed to load linked form template");
                 }
-            } catch(e) { 
-                console.error("Template Fetch Error", e); 
-            } finally { 
-                setLoadingTemplate(false); 
-            }
+            } catch(e) { console.error("Template Fetch Error", e); } 
+            finally { setLoadingTemplate(false); }
         } 
         else if (service.requiredFields && service.requiredFields.length > 0) {
              setTemplateSchema([{
@@ -75,15 +72,20 @@ export default function ServiceWizardScreen({ route, navigation }) {
     fetchTemplate();
   }, [service]);
 
-  // Animation Loop
+  // Animation Loop & Trigger Search
   useEffect(() => { 
       if (currentStep === 4) { 
+          // --- FIX: Check Lock ---
+          if (isSubmitting.current) return; // Agar pehle se chal raha hai to ruk jao
+          isSubmitting.current = true; // Lock lagao
+
           Animated.loop(
               Animated.sequence([
                   Animated.timing(pulseAnim, { toValue: 1.2, duration: 800, useNativeDriver: true }), 
                   Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
               ])
           ).start(); 
+          
           performLiveSearch(); 
       } 
   }, [currentStep]);
@@ -111,7 +113,7 @@ export default function ServiceWizardScreen({ route, navigation }) {
     } catch (err) { return null; }
   };
 
-  // --- SUBMIT LOGIC (FIXED) ---
+  // --- SUBMIT LOGIC ---
   const performLiveSearch = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -130,7 +132,6 @@ export default function ServiceWizardScreen({ route, navigation }) {
           isService: true 
       };
 
-      // Send
       const response = await fetch(`${API_URL}/applications/apply`, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json', 'x-auth-token': token }, 
@@ -142,29 +143,26 @@ export default function ServiceWizardScreen({ route, navigation }) {
           const resData = JSON.parse(text);
           if (response.ok) {
               setTrackingId(resData.trackingId);
-              
-              // --- FIX: Use correct key from Backend (agentName) ---
-              // Backend bhej raha hai: { status: 'ASSIGNED', agentName: 'Rohit' }
-              // Pehle hum dhoondh rahe the 'assignedAgent' jo undefined tha
-              
               if (resData.status === 'ASSIGNED') {
                   setAssignedAgent(resData.agentName || resData.assignedAgent || "Agent");
               } else {
                   setAssignedAgent(null);
               }
-              // -----------------------------------------------------
-
               setCurrentStep(5);
+              // Note: isSubmitting.current ko true hi rehne do taaki user back karke dubara submit na kare
           } else {
               Alert.alert("Error", resData.msg || "Submission failed");
               setCurrentStep(3);
+              isSubmitting.current = false; // Error aaya to lock khol do taaki retry kar sake
           }
       } catch (e) {
           Alert.alert("Server Error", "Backend crashed. Check logs.");
           setCurrentStep(3);
+          isSubmitting.current = false; // Retry allow karo
       }
     } catch (error) { 
         setCurrentStep(3); 
+        isSubmitting.current = false; // Retry allow karo
         Alert.alert("Network Error", "Failed to connect"); 
     }
   };
@@ -242,7 +240,7 @@ export default function ServiceWizardScreen({ route, navigation }) {
 
   const renderStep4 = () => (<View style={styles.centerContainer}><Animated.View style={{ transform: [{ scale: pulseAnim }] }}><View style={styles.searchCircle}><Search size={50} color="#fff" /></View></Animated.View><Text style={styles.searchTitle}>Connecting...</Text><Text style={{color:'#666'}}>Finding expert for: {service.category}</Text></View>);
   
-  const renderStep5 = () => (<View style={styles.centerContainer}><CheckCircle size={80} color="#10b981"/><Text style={styles.successTitle}>Success!</Text><View style={styles.agentBox}>{assignedAgent ? <><UserCheck size={24} color="#1e3c72"/><View style={{marginLeft:10}}><Text style={{fontWeight:'bold'}}>Assigned To:</Text><Text style={{fontSize:18, color:'#1e3c72', fontWeight:'bold'}}>{assignedAgent}</Text></View></> : <View><Text style={{fontWeight:'bold', color:'#f59e0b'}}>Request Queued</Text><Text style={{fontSize:12, color:'#666'}}>Experts busy. Admin will assign shortly.</Text></View>}</View><Text style={styles.trackId}>ID: {trackingId}</Text><TouchableOpacity style={styles.homeBtn} onPress={() => navigation.navigate('MainApp')}><Text style={{color:'#2563eb'}}>Go Home</Text></TouchableOpacity></View>);
+  const renderStep5 = () => (<View style={styles.centerContainer}><CheckCircle size={80} color="#10b981"/><Text style={styles.successTitle}>Success!</Text><View style={styles.agentBox}>{assignedAgent ? <><UserCheck size={24} color="#1e3c72"/><Text style={{marginLeft:10, fontWeight:'bold'}}>Assigned: {assignedAgent}</Text></> : <Text>Request Queued (Agents Busy)</Text>}</View><Text style={styles.trackId}>ID: {trackingId}</Text><TouchableOpacity style={styles.homeBtn} onPress={() => navigation.navigate('MainApp')}><Text style={{color:'#2563eb'}}>Go Home</Text></TouchableOpacity></View>);
 
   return (
     <SafeAreaView style={{flex:1, backgroundColor:'#f3f4f6'}}>
