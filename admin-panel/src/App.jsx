@@ -1,116 +1,84 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import axios from 'axios';
+import { API_BASE_URL } from './config';
 
-// --- Pages Import ---
-import AdminLogin from './pages/AdminLogin';
+// Imports
+import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
-import AgentDashboard from './pages/AgentDashboard';
-import ManageWallet from './pages/ManageWallet';
-// Govt Jobs & Updates
-import GovtJobDashboard from './pages/GovtJobDashboard';
 import ManageJobs from './pages/ManageJobs';
 import AddJob from './pages/AddJob';
 import EditJob from './pages/EditJob';
-import ManageUpdates from './pages/ManageUpdates';
-import LandingPage from './pages/LandingPage';
-// Applications & Tasks
 import ManageApplications from './pages/ManageApplications';
 import ApplicationDetails from './pages/ApplicationDetails';
-
-// Management
-import ManageAgents from './pages/ManageAgents';
-import ManageMasterData from './pages/ManageMasterData';
-import ManageBanners from './pages/ManageBanners';
-import ManageCoupons from './pages/ManageCoupons'; // Fixed Import
-import AuditLog from './pages/AuditLog';
-// Services
-import AddService from './pages/AddService';
 import ManageServices from './pages/ManageServices';
-import FormBuilder from './pages/FormBuilder';
-// Support
-import ManageHelpRequests from './pages/ManageHelpRequests';
+import AddService from './pages/AddService';
 import EditService from './pages/EditService';
+import ManageAgents from './pages/ManageAgents';
+import ManageBanners from './pages/ManageBanners';
 import UtilityTools from './pages/UtilityTools';
+import LandingPage from './pages/LandingPage'; // ✅ Landing Page Import
+
 function App() {
-  const [authData, setAuthData] = useState({ isAuth: false, role: null });
-  const [isLoading, setIsLoading] = useState(true);
+  const [authData, setAuthData] = useState({ isAuth: false, token: null, role: null, loading: true });
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
+    const role = localStorage.getItem('adminRole');
     if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        if (decoded.exp * 1000 > Date.now()) {
-          setAuthData({ isAuth: true, role: decoded.admin.role });
-        } else {
-          localStorage.removeItem('adminToken');
-        }
-      } catch (e) { localStorage.removeItem('adminToken'); }
+      setAuthData({ isAuth: true, token, role, loading: false });
+    } else {
+      setAuthData({ isAuth: false, token: null, role: null, loading: false });
     }
-    setIsLoading(false);
   }, []);
 
-  const handleLogin = (role) => setAuthData({ isAuth: true, role });
-  const handleLogout = () => { localStorage.removeItem('adminToken'); setAuthData({ isAuth: false, role: null }); };
-
-  if (isLoading) return <div />;
-
-  const SuperAdminRoute = ({ children }) => {
-    return authData.isAuth && authData.role === 'SuperAdmin' ? children : <Navigate to="/" />;
+  const handleLogin = (token, role) => {
+    localStorage.setItem('adminToken', token);
+    localStorage.setItem('adminRole', role);
+    setAuthData({ isAuth: true, token, role, loading: false });
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminRole');
+    setAuthData({ isAuth: false, token: null, role: null, loading: false });
+  };
+
+  if (authData.loading) return <div>Loading...</div>;
+
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
-      <Route path="/" element={<LandingPage />} /> 
-        {/* Login */}
-        <Route path="/login" element={!authData.isAuth ? <AdminLogin onLoginSuccess={handleLogin} /> : <Navigate to="/" replace />} />
-        
-        {/* Dashboard (Based on Role) */}
-        <Route path="/" element={authData.isAuth ? (authData.role === 'SuperAdmin' ? <AdminDashboard onLogout={handleLogout} /> : <AgentDashboard onLogout={handleLogout} />) : <Navigate to="/login" replace />} />
+        {/* ✅ 1. PUBLIC LANDING PAGE (Root URL) */}
+        <Route path="/" element={<LandingPage />} />
 
-        {/* --- SHARED ROUTES (Admin & Agent) --- */}
-        <Route path="/applications/view/:id" element={authData.isAuth ? <ApplicationDetails onLogout={handleLogout}/> : <Navigate to="/login"/>} />
+        {/* ✅ 2. LOGIN PAGE (Redirects to Dashboard if already logged in) */}
+        <Route path="/login" element={!authData.isAuth ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" />} />
 
-        {/* --- SUPER ADMIN ONLY ROUTES --- */}
+        {/* ✅ 3. DASHBOARD (Protected) */}
+        <Route path="/dashboard" element={authData.isAuth ? <AdminDashboard onLogout={handleLogout} /> : <Navigate to="/login" />} />
+
+        {/* ... Other Protected Routes ... */}
+        <Route path="/government-jobs" element={authData.isAuth ? <ManageJobs onLogout={handleLogout} /> : <Navigate to="/login" />} />
+        <Route path="/jobs/add" element={authData.isAuth ? <AddJob onLogout={handleLogout} /> : <Navigate to="/login" />} />
+        <Route path="/jobs/edit/:id" element={authData.isAuth ? <EditJob onLogout={handleLogout} /> : <Navigate to="/login" />} />
         
-        {/* Jobs */}
-        <Route path="/government-jobs" element={<SuperAdminRoute><GovtJobDashboard onLogout={handleLogout}/></SuperAdminRoute>} />
-        <Route path="/jobs/manage" element={<SuperAdminRoute><ManageJobs onLogout={handleLogout}/></SuperAdminRoute>} />
-        <Route path="/jobs/add" element={<SuperAdminRoute><AddJob onLogout={handleLogout}/></SuperAdminRoute>} />
-        <Route path="/jobs/edit/:id" element={<SuperAdminRoute><EditJob onLogout={handleLogout}/></SuperAdminRoute>} />
+        <Route path="/applications" element={authData.isAuth ? <ManageApplications onLogout={handleLogout} /> : <Navigate to="/login" />} />
+        <Route path="/applications/view/:id" element={authData.isAuth ? <ApplicationDetails onLogout={handleLogout} /> : <Navigate to="/login" />} />
         
-        {/* Updates (Admit Card/Result) */}
-        <Route path="/updates/manage" element={<SuperAdminRoute><ManageUpdates onLogout={handleLogout}/></SuperAdminRoute>} />
-        <Route path="/wallet/manage" element={
-          <SuperAdminRoute><ManageWallet onLogout
-          ={handleLogout}/></SuperAdminRoute>} />
-        
-        {/* Applications List */}
-        <Route path="/applications" element={<SuperAdminRoute><ManageApplications onLogout={handleLogout}/></SuperAdminRoute>} />
-        
-        {/* Citizen Services */}
-        <Route path="/services/add" element={<SuperAdminRoute><AddService onLogout={handleLogout}/></SuperAdminRoute>} />
-        <Route path="/services/manage" element={<SuperAdminRoute><ManageServices onLogout={handleLogout}/></SuperAdminRoute>} />
-        <Route path="/forms/builder" element={<SuperAdminRoute><FormBuilder onLogout={handleLogout}/></SuperAdminRoute>} />
-       <Route path="/audit-log" element={<SuperAdminRoute><AuditLog onLogout={handleLogout}/></SuperAdminRoute>} />
-        {/* Team, Data & Banners */}
-        <Route path="/agents/create" element={<SuperAdminRoute><ManageAgents onLogout={handleLogout}/></SuperAdminRoute>} />
-        <Route path="/master-data" element={<SuperAdminRoute><ManageMasterData onLogout={handleLogout}/></SuperAdminRoute>} />
-        <Route path="/banners" element={<SuperAdminRoute><ManageBanners onLogout={handleLogout}/></SuperAdminRoute>} />
-        <Route path="/tools" element={authData.isAuth ? <UtilityTools onLogout={handleLogout}/> : <Navigate to="/login"/>} />
-        {/* Support */}
-        <Route path="/help-desk" element={<SuperAdminRoute><ManageHelpRequests onLogout={handleLogout}/></SuperAdminRoute>} />
+        <Route path="/services/manage" element={authData.isAuth ? <ManageServices onLogout={handleLogout} /> : <Navigate to="/login" />} />
+        <Route path="/services/add" element={authData.isAuth ? <AddService onLogout={handleLogout} /> : <Navigate to="/login" />} />
         <Route path="/services/edit/:id" element={authData.isAuth ? <EditService onLogout={handleLogout} /> : <Navigate to="/login" />} />
-        {/* Coupons (New) */}
-        <Route path="/coupons" element={<SuperAdminRoute><ManageCoupons onLogout={handleLogout}/></SuperAdminRoute>} />
+        
+        <Route path="/agents/create" element={authData.isAuth ? <ManageAgents onLogout={handleLogout} /> : <Navigate to="/login" />} />
+        <Route path="/banners" element={authData.isAuth ? <ManageBanners onLogout={handleLogout} /> : <Navigate to="/login" />} />
+        <Route path="/tools" element={authData.isAuth ? <UtilityTools onLogout={handleLogout} /> : <Navigate to="/login" />} />
 
+        {/* Fallback: Redirect unknown URLs to Home */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 
 export default App;
-
-
