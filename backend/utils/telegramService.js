@@ -2,7 +2,7 @@ const axios = require('axios');
 
 // ⚠️ YAHAN APNA TOKEN AUR CHAT ID DALEIN
 const BOT_TOKEN = "7178445265:AAFRMgEnC_t10ivkjhlEu9VCvT7JoJy-oB0"; 
-const GROUP_CHAT_ID = "7882393836"; // e.g. -100123456789
+const GROUP_CHAT_ID = "423148882"; // e.g. -100123456789
 
 const sendTelegramMessage = async (message) => {
     if (!BOT_TOKEN || !GROUP_CHAT_ID) return;
