@@ -13,7 +13,7 @@ import ManageJobs from './pages/ManageJobs';
 import AddJob from './pages/AddJob';
 import EditJob from './pages/EditJob';
 import ManageUpdates from './pages/ManageUpdates';
-
+import LandingPage from './pages/LandingPage';
 // Applications & Tasks
 import ManageApplications from './pages/ManageApplications';
 import ApplicationDetails from './pages/ApplicationDetails';
@@ -63,6 +63,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+      <Route path="/" element={<LandingPage />} /> 
         {/* Login */}
         <Route path="/login" element={!authData.isAuth ? <AdminLogin onLoginSuccess={handleLogin} /> : <Navigate to="/" replace />} />
         
