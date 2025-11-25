@@ -9,7 +9,6 @@ import API_URL from '../config/api';
 
 const CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || "dka87xxxx"; 
 const UPLOAD_PRESET = process.env.EXPO_PUBLIC_UPLOAD_PRESET || "sewaone_preset";
-// --- FIX: Backticks added below ---
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
 export default function ApplicationWizardScreen({ route, navigation }) {
@@ -21,7 +20,7 @@ export default function ApplicationWizardScreen({ route, navigation }) {
   const requiredDocuments = job.requiredDocuments || [];
   const timeSlots = job.timeSlots || [];
   
-  // Service Fee (Number fix)
+  // Service Fee
   const serviceFeeFixed = job.serviceCharge ? parseInt(job.serviceCharge) : 50;
 
   // Steps: 0=Instr, 1=Form, 2=Docs, 3=Search, 4=Success
@@ -41,6 +40,9 @@ export default function ApplicationWizardScreen({ route, navigation }) {
   const [slotLoading, setSlotLoading] = useState(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  
+  // ✅ FIX: LOCK TO PREVENT DOUBLE SUBMISSION
+  const isSubmitting = useRef(false);
 
   // 1. LOAD PROFILE
   useEffect(() => {
@@ -64,13 +66,18 @@ export default function ApplicationWizardScreen({ route, navigation }) {
     loadProfile();
   }, []);
 
-  // 2. ANIMATION
+  // 2. ANIMATION & SUBMIT TRIGGER
   useEffect(() => {
     if (currentStep === 3) {
+      // ✅ LOCK CHECK: Agar pehle se submit ho raha hai to ruk jao
+      if (isSubmitting.current) return;
+      isSubmitting.current = true; // Lock lagao
+
       Animated.loop(Animated.sequence([
           Animated.timing(pulseAnim, { toValue: 1.2, duration: 800, useNativeDriver: true }),
           Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
       ])).start();
+      
       performLiveSearch();
     }
   }, [currentStep]);
@@ -84,7 +91,6 @@ export default function ApplicationWizardScreen({ route, navigation }) {
           return;
       }
       
-      // Case-insensitive keys
       const catKey = Object.keys(formData).find(k => k.toLowerCase().trim() === 'category');
       const genKey = Object.keys(formData).find(k => k.toLowerCase().trim() === 'gender');
 
@@ -145,27 +151,45 @@ export default function ApplicationWizardScreen({ route, navigation }) {
               serviceFee: parseInt(serviceFeeFixed), 
               totalAmount: totalFee, 
               isPaid: false 
-          }
+          },
+          isService: false // ✅ Important: Backend ko batane ke liye ki ye Job hai
       };
 
-      setTimeout(async () => {
-        try {
-            const response = await fetch(`${API_URL}/applications/submit-live`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-                body: JSON.stringify(payload)
-            });
-            const resData = await response.json();
-            if (resData.status === 'ASSIGNED') {
-                setAssignedAgent(resData.agentName);
-                setTrackingId(resData.trackingId);
-                setCurrentStep(4); 
-            } else {
-                setShowSlotModal(true);
-            }
-        } catch (e) { setShowSlotModal(true); }
-      }, 3000); 
-    } catch (error) { setCurrentStep(2); Alert.alert("Upload Error"); }
+      // Wait thoda sa animation ke liye
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      try {
+          const response = await fetch(`${API_URL}/applications/submit-live`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+              body: JSON.stringify(payload)
+          });
+          const resData = await response.json();
+          
+          if (response.ok) {
+              // ✅ Backend ne jo agent name bheja hai wo use karo
+              if (resData.status === 'ASSIGNED') {
+                  setAssignedAgent(resData.agentName);
+                  setTrackingId(resData.trackingId);
+                  setCurrentStep(4); 
+              } else {
+                  // No Agent Found -> Show Slot Modal
+                  setShowSlotModal(true);
+              }
+          } else {
+              Alert.alert("Error", resData.msg || "Failed");
+              isSubmitting.current = false; // Lock kholo retry ke liye
+              setCurrentStep(2);
+          }
+      } catch (e) { 
+          setShowSlotModal(true); 
+          isSubmitting.current = false; // Lock kholo
+      }
+    } catch (error) { 
+        setCurrentStep(2); 
+        isSubmitting.current = false; // Lock kholo
+        Alert.alert("Upload Error"); 
+    }
   };
 
   // --- SUBMIT LOGIC (Slot Fallback) ---
@@ -174,6 +198,8 @@ export default function ApplicationWizardScreen({ route, navigation }) {
       setSlotLoading(true);
       try {
           const token = await AsyncStorage.getItem('userToken');
+          // Docs are already likely uploaded or local URIs if live failed before upload finished
+          // Re-using uploadedDocs logic simply here
           const formattedDocs = Object.keys(uploadedDocs).map(key => ({ docName: key, url: uploadedDocs[key].uri.startsWith('http') ? uploadedDocs[key].uri : 'pending_upload_retry' })); 
           
           const totalFee = parseInt(calculatedOfficialFee) + parseInt(serviceFeeFixed);
@@ -188,7 +214,8 @@ export default function ApplicationWizardScreen({ route, navigation }) {
                   serviceFee: parseInt(serviceFeeFixed), 
                   totalAmount: totalFee, 
                   isPaid: false 
-              }
+              },
+              isService: false
           };
 
           const response = await fetch(`${API_URL}/applications/submit-slot`, {
@@ -197,9 +224,13 @@ export default function ApplicationWizardScreen({ route, navigation }) {
                body: JSON.stringify(payload)
            });
            const resData = await response.json();
-           setTrackingId(resData.trackingId);
-           setShowSlotModal(false);
-           setCurrentStep(4); 
+           if(response.ok) {
+               setTrackingId(resData.trackingId);
+               setShowSlotModal(false);
+               setCurrentStep(4);
+           } else {
+               Alert.alert("Error", resData.msg);
+           } 
       } catch(e) { Alert.alert("Error"); } finally { setSlotLoading(false); }
   };
 
@@ -262,11 +293,24 @@ export default function ApplicationWizardScreen({ route, navigation }) {
             </View>
         );
       })}
-      <TouchableOpacity style={styles.mainBtn} onPress={() => {
+      
+      {/* ✅ FIX: Disable button if submitting */}
+      <TouchableOpacity 
+        style={[styles.mainBtn, isSubmitting.current && {opacity:0.7}]} 
+        disabled={isSubmitting.current}
+        onPress={() => {
           const missing = requiredDocuments.filter(d => !uploadedDocs[d]);
           if(missing.length > 0) return Alert.alert("Missing", `Upload: ${missing.join(', ')}`);
-          Alert.alert("Submit?", `Total Fee: ₹${calculatedOfficialFee + serviceFeeFixed}`, [{text:"Yes", onPress:()=>setCurrentStep(3)}, {text:"Cancel"}]);
-      }}><Text style={styles.btnText}>Find Expert & Submit &rarr;</Text></TouchableOpacity>
+          
+          Alert.alert("Submit?", `Total Fee: ₹${calculatedOfficialFee + serviceFeeFixed}`, [
+              { text:"Yes", onPress:()=> {
+                  if(!isSubmitting.current) setCurrentStep(3);
+              }}, 
+              { text:"Cancel" }
+          ]);
+      }}>
+          <Text style={styles.btnText}>{isSubmitting.current ? "Processing..." : "Find Expert & Submit"}</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 
@@ -274,6 +318,7 @@ export default function ApplicationWizardScreen({ route, navigation }) {
     <View style={styles.centerContainer}>
       <Animated.View style={{ transform: [{ scale: pulseAnim }] }}><View style={styles.searchCircle}><Search size={50} color="#fff" /></View></Animated.View>
       <Text style={styles.searchTitle}>Finding Expert...</Text>
+      <Text style={{color:'#666'}}>Matching job profile...</Text>
       <ActivityIndicator size="large" color="#2563eb" style={{marginTop: 20}}/>
     </View>
   );

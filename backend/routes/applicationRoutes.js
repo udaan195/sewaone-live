@@ -4,87 +4,91 @@ const router = express.Router();
 const Application = require('../models/Application');
 const Admin = require('../models/Admin');
 const Job = require('../models/Job');
-const Service = require('../models/Service'); 
 const User = require('../models/User');
-
+const Service = require('../models/Service');
 const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
 
-// Optional: Import Utils if they exist in your project structure
-// (Hum try-catch ke andar use karenge taaki agar file na ho to crash na ho)
+// Optional Imports (Error handling ke saath)
 let sendPushNotification, logAction;
 try {
     const notifService = require('../utils/notificationService');
     sendPushNotification = notifService.sendPushNotification;
     const logService = require('../utils/loggingService');
     logAction = logService.logAction;
-} catch (e) { console.log("Utils not found, skipping logs/notifs"); }
+} catch (e) { console.log("Utils not found, skipping logs"); }
 
 const generateTrackingId = () => 'SEWA-' + Math.floor(100000 + Math.random() * 900000);
 
 // ==========================================
-// 🧠 HELPER: FEE CALCULATOR
+// 🧠 INTELLIGENT FEE CALCULATOR
 // ==========================================
-const calculateFee = async (jobId, userCategory, userGender) => {
-    try {
-        if (!jobId) return 0;
-        
-        // Check Service First (Simpler Fee)
-        const service = await Service.findById(jobId);
-        if (service) return service.officialFee || 0;
+const calculateFee = async (jobId, category, gender) => {
+  try {
+    if (!jobId) return 0;
+    
+    // Check Service First
+    const service = await Service.findById(jobId);
+    if (service) return service.officialFee || 0;
 
-        // Check Job (Complex Rules)
-        const job = await Job.findById(jobId);
-        if (!job) return 0;
+    // Check Job
+    const job = await Job.findById(jobId);
+    if (!job) return 0;
 
-        let finalFee = 0;
-        const rules = job.applicationFee || job.fees;
+    const userCat = category ? category.toString().trim().toLowerCase() : 'general';
+    const userGen = gender ? gender.toString().trim().toLowerCase() : 'male';
 
-        if (Array.isArray(rules)) {
-            const uCat = userCategory?.toLowerCase() || 'general';
-            const uGen = userGender?.toLowerCase() || 'male';
-            
-            const rule = rules.find(r => {
-                const rCat = r.category?.toLowerCase() || '';
-                const rGen = r.gender?.toLowerCase() || 'any';
-                return (rCat.includes(uCat) || rCat === 'all') && (rGen === uGen || rGen === 'any');
-            });
-            
-            if (rule) finalFee = Number(rule.amount || rule.fee);
-        } 
-        else if (rules && typeof rules === 'object') {
-            finalFee = rules[userCategory] || rules['General'] || 0;
-        } else {
-            finalFee = Number(rules || 0);
+    let finalFee = 0;
+    const rules = job.applicationFee || job.fees;
+
+    if (Array.isArray(rules)) {
+      let match = null;
+      for (let r of rules) {
+        const dbCatRaw = r.category ? r.category.toString().toLowerCase() : '';
+        const dbGenRaw = r.gender ? r.gender.toString().toLowerCase() : 'any';
+        const amount = Number(r.amount || r.fee || r.price || r.officialFee || 0);
+
+        const dbCategoriesList = dbCatRaw.split('/').map((c) => c.trim());
+        const isCatMatch = dbCatRaw === userCat || dbCatRaw.includes(userCat) || dbCategoriesList.includes(userCat);
+
+        if (isCatMatch) {
+          const isGenMatch = dbGenRaw === userGen || dbGenRaw === 'any' || (dbGenRaw === 'male' && userGen === 'male');
+          if (isGenMatch) {
+            match = r;
+            finalFee = amount;
+            break;
+          }
         }
-        return finalFee;
-    } catch (err) { return 0; }
+      }
+      if (!match) {
+        const generalRule = rules.find(r => r.category?.toLowerCase().includes('general'));
+        if (generalRule) finalFee = Number(generalRule.amount || 0);
+      }
+    } else if (job.fees && typeof job.fees === 'object') {
+      finalFee = job.fees[userCat] || job.fees.General || 0;
+    } else if (job.applicationFee) {
+      finalFee = job.applicationFee;
+    }
+
+    return isNaN(Number(finalFee)) ? 0 : Number(finalFee);
+  } catch (err) { return 0; }
 };
 
 // ==========================================
-// 🚀 CORE LOGIC: HANDLE SUBMISSION
+// 🚀 CORE SUBMIT LOGIC (Shared)
 // ==========================================
-const handleApplicationSubmit = async (req, res) => {
+const processApplication = async (req, res) => {
   try {
-    const {
-      jobId,
-      uploadedDocuments,
-      applicationData,
-      paymentDetails = {},
-      isService,
-      selectedSlot
-    } = req.body;
+    const { jobId, uploadedDocuments, applicationData, paymentDetails = {}, isService, selectedSlot } = req.body;
 
-    console.log(`🔵 Processing Application for ID: ${jobId}`);
-
-    // --- 1. IDENTIFY CATEGORY (For Agent Search) ---
+    // 1. Identify Category for Agent Search (FIXED LOGIC)
     let workCategory = 'Other';
     let itemTitle = 'Unknown';
     
     // Check Service
     let srv = await Service.findById(jobId);
     if (srv) {
-        workCategory = srv.category || 'Citizen Service';
+        workCategory = srv.subCategory || srv.category || 'Citizen Service';
         itemTitle = srv.title;
     } else {
         // Check Job
@@ -94,23 +98,26 @@ const handleApplicationSubmit = async (req, res) => {
             itemTitle = job.title;
         }
     }
+    
+    console.log(`📝 Processing: "${itemTitle}" | Agent Category Needed: "${workCategory}"`);
 
-    console.log(`📝 Type: ${workCategory} | Title: ${itemTitle}`);
-
-    // --- 2. CALCULATE FEES ---
+    // 2. Fee Calculation
     const userCategory = applicationData?.Category || 'General';
     const userGender = applicationData?.Gender || 'Male';
-    
-    let officialFee = await calculateFee(jobId, userCategory, userGender);
-    // Fallback if frontend sent fee
-    if (officialFee === 0 && req.body.fee) officialFee = Number(req.body.fee);
-    if (officialFee === 0 && paymentDetails.officialFee) officialFee = Number(paymentDetails.officialFee);
+    let processedFee = await calculateFee(jobId, userCategory, userGender);
+    if (processedFee === 0 && req.body.fee) processedFee = Number(req.body.fee);
 
-    const serviceFee = Number(paymentDetails.serviceFee || 50);
-    const totalAmount = officialFee + serviceFee;
+    const frontendServiceFee = paymentDetails?.serviceFee ? Number(paymentDetails.serviceFee) : 50;
+    const finalPaymentDetails = {
+      serviceFee: frontendServiceFee,
+      officialFee: processedFee,
+      totalAmount: processedFee + frontendServiceFee,
+      isPaid: false,
+      ...paymentDetails,
+    };
 
-    // --- 3. SMART AGENT SEARCH ---
-    // Logic: Online + Not Blocked + Load < Max + (Skill Match OR All-Rounder)
+    // 3. SMART AGENT SEARCH (Category Based)
+    // Logic: Online + Not Blocked + Capacity Left + (Expert OR All-Rounder)
     const availableAgent = await Admin.findOne({
       role: 'Agent',
       isOnline: true,
@@ -118,65 +125,54 @@ const handleApplicationSubmit = async (req, res) => {
       $expr: { $lt: ['$currentLoad', '$maxCapacity'] },
       $or: [
         { specializations: 'ALL' },            
-        { specializations: workCategory },     
+        { specializations: workCategory }, // ✅ Uses correct Service/Job Category
       ],
-    }).sort({ currentLoad: 1 }); 
+    }).sort({ currentLoad: 1 });
 
-    // --- 4. ASSIGNMENT ---
+    // 4. Assign & Save
     const trackingId = generateTrackingId();
     let assignedAgentId = null;
-    let status = 'Pending Verification';
+    let status = selectedSlot ? 'Pending Verification' : 'Pending Verification'; // Default
     let agentName = null;
 
-    // Agar Slot Booking nahi hai (Live hai) aur Agent mil gaya
+    // Agar Slot Booking NAHI hai (Live hai) tabhi agent assign karo
     if (availableAgent && !selectedSlot) {
       assignedAgentId = availableAgent._id;
       status = 'Processing';
       agentName = availableAgent.firstName;
 
-      // Increase Load
       if (!availableAgent.currentLoad) availableAgent.currentLoad = 0;
       availableAgent.currentLoad += 1;
       await availableAgent.save();
       console.log(`✅ Assigned to: ${agentName}`);
-    } else {
-      console.log("⏳ Queued (No Agent or Slot Booking)");
     }
 
-    // --- 5. SAVE APPLICATION ---
     const newApp = new Application({
       userId: req.user.id,
-      jobId, 
+      jobId,
       serviceType: isService ? 'Service' : 'Job',
       trackingId,
       uploadedDocuments,
       assignedAgentId,
-      isLiveRequest: !!assignedAgentId,
+      isLiveRequest: !!availableAgent,
       selectedSlot: selectedSlot || null,
       status,
       userRead: true,
       applicationData,
-      paymentDetails: {
-          officialFee,
-          serviceFee,
-          totalAmount,
-          isPaid: false,
-          status: 'Pending'
-      },
+      paymentDetails: finalPaymentDetails,
+      fee: processedFee,
     });
 
     await newApp.save();
-    
-    // History Update
     await User.findByIdAndUpdate(req.user.id, { $push: { applications: newApp._id } });
 
-    // --- 6. RESPONSE ---
+    // Response
     if (assignedAgentId) {
         return res.json({
             status: 'ASSIGNED',
             agentName: agentName,
             trackingId,
-            msg: 'Agent Assigned!',
+            msg: 'Agent found! Request assigned.',
         });
     } else {
         return res.json({
@@ -187,32 +183,32 @@ const handleApplicationSubmit = async (req, res) => {
     }
 
   } catch (err) {
-    console.error('🔴 SUBMIT ERROR:', err);
-    res.status(500).json({ msg: 'Server Error', error: err.message });
+    console.error('Submit Error:', err);
+    res.status(500).send('Server Error');
   }
 };
 
 // ==========================================
-// 1. USER ROUTES
+// USER ROUTES
 // ==========================================
 
-// All submit routes use the same smart handler
-router.post('/apply', auth, handleApplicationSubmit);
-router.post('/submit-live', auth, handleApplicationSubmit);
-router.post('/submit-slot', auth, handleApplicationSubmit);
+// ✅ Consolidated Routes (Sabka logic same function handle karega)
+router.post('/submit-live', auth, processApplication);
+router.post('/apply', auth, processApplication); // For Govt Jobs
+router.post('/submit-slot', auth, processApplication);
 
-// Get History
+// My History
 router.get('/my-history', auth, async (req, res) => {
   try {
     const apps = await Application.find({ userId: req.user.id })
-      .populate('jobId', 'title category')
-      .populate('assignedAgentId', 'firstName')
+      .populate('jobId', ['title', 'organization', 'category']) // Job/Service fetch
+      .populate('assignedAgentId', ['firstName'])
       .sort({ appliedAt: -1 });
     res.json(apps);
   } catch (err) { res.status(500).send('Server Error'); }
 });
 
-// Payment Confirmation
+// Confirm Payment
 router.put('/confirm-payment/:id', auth, async (req, res) => {
   try {
     const { transactionId, paymentScreenshotUrl, couponCode, finalAmount } = req.body;
@@ -230,6 +226,7 @@ router.put('/confirm-payment/:id', auth, async (req, res) => {
     app.paymentDetails.transactionId = transactionId;
     app.paymentDetails.paymentScreenshot = paymentScreenshotUrl;
     if (finalAmount) app.paymentDetails.totalAmount = finalAmount;
+    app.paymentDetails.isPaid = false;
     app.status = 'Payment Verification Pending';
     app.userRead = false;
 
@@ -239,10 +236,9 @@ router.put('/confirm-payment/:id', auth, async (req, res) => {
 });
 
 // ==========================================
-// 2. ADMIN / AGENT ROUTES
+// ADMIN / AGENT ROUTES
 // ==========================================
 
-// Dashboard Data
 router.get('/all-admin', adminAuth, async (req, res) => {
   try {
     const apps = await Application.find()
@@ -251,10 +247,9 @@ router.get('/all-admin', adminAuth, async (req, res) => {
       .populate('assignedAgentId', 'firstName mobile')
       .sort({ appliedAt: -1 });
     res.json(apps);
-  } catch (e) { res.status(500).send('Server Error'); }
+  } catch (e) { res.status(500).send('Error'); }
 });
 
-// Agent Tasks
 router.get('/my-tasks', adminAuth, async (req, res) => {
   try {
     const tasks = await Application.find({ assignedAgentId: req.admin.id })
@@ -262,14 +257,13 @@ router.get('/my-tasks', adminAuth, async (req, res) => {
       .populate('jobId')
       .sort({ appliedAt: -1 });
     res.json(tasks);
-  } catch (e) { res.status(500).send('Server Error'); }
+  } catch (e) { res.status(500).send('Error'); }
 });
 
-// Detail View
 router.get('/detail/:id', adminAuth, async (req, res) => {
   try {
     const app = await Application.findById(req.params.id)
-      .populate('userId', 'firstName lastName mobile email')
+      .populate('userId', ['firstName', 'lastName', 'mobile', 'email'])
       .populate('jobId')
       .populate('assignedAgentId', 'firstName');
     if (!app) return res.status(404).json({ msg: 'Not found' });
@@ -277,12 +271,16 @@ router.get('/detail/:id', adminAuth, async (req, res) => {
   } catch (err) { res.status(500).send('Server Error'); }
 });
 
-// Request Payment
+// Payment & Status Updates (With Logs & Notifications)
 router.put('/request-payment/:id', adminAuth, async (req, res) => {
   try {
     const { officialFee, serviceFee } = req.body;
     const app = await Application.findById(req.params.id);
-    if (!app) return res.status(404).json({ msg: 'Not found' });
+    if (!app) return res.status(404).json({ msg: 'App not found' });
+
+    if (app.status === 'Completed' || app.paymentDetails.isPaid) {
+        return res.status(400).json({ msg: 'Invalid request' });
+    }
 
     app.status = 'Payment Pending';
     app.userRead = false;
@@ -292,18 +290,15 @@ router.put('/request-payment/:id', adminAuth, async (req, res) => {
     app.paymentDetails.isPaid = false;
 
     await app.save();
-    
-    // Notification
+
     if(sendPushNotification) {
         const user = await User.findById(app.userId);
         if(user?.pushToken) sendPushNotification(user.pushToken, 'Payment Requested', `Pay ₹${app.paymentDetails.totalAmount}`, { applicationId: app._id });
     }
-
-    res.json({ msg: 'Request Sent', app });
+    res.json({ msg: 'Payment Requested', app });
   } catch (err) { res.status(500).send('Server Error'); }
 });
 
-// Verify Payment
 router.put('/verify-payment/:id', adminAuth, async (req, res) => {
   try {
     const { decision, rejectionReason } = req.body;
@@ -313,23 +308,24 @@ router.put('/verify-payment/:id', adminAuth, async (req, res) => {
     if (decision === 'approve') {
       app.status = 'Processing';
       app.paymentDetails.isPaid = true;
-      app.paymentDetails.status = 'Paid';
+      app.userRead = false;
     } else {
       app.status = 'Payment Rejected';
       app.paymentDetails.isPaid = false;
       app.paymentRejectionReason = rejectionReason;
+      app.userRead = false;
     }
-    app.userRead = false;
     await app.save();
 
-    // Logging
     if(logAction) logAction(req.admin.id, req.admin.firstName, req.admin.role, decision==='approve'?'PAYMENT_APPROVED':'PAYMENT_REJECTED', `App ID: ${app.trackingId}`, app.trackingId);
+    
+    const user = await User.findById(app.userId);
+    if(user?.pushToken) sendPushNotification(user.pushToken, 'Payment Update', `Payment ${decision}d`, { applicationId: app._id });
 
     res.json({ msg: `Payment ${decision}d`, app });
   } catch (err) { res.status(500).send('Server Error'); }
 });
 
-// Update Status
 router.put('/update-status/:id', adminAuth, async (req, res) => {
   try {
     const { status, rejectionReason, agentNotes } = req.body;
@@ -341,20 +337,20 @@ router.put('/update-status/:id', adminAuth, async (req, res) => {
 
     const app = await Application.findByIdAndUpdate(req.params.id, updateData, { new: true });
 
-    // If Rejected, reduce agent load
     if (status === 'Rejected' && oldApp.status !== 'Rejected' && oldApp.assignedAgentId) {
         const agent = await Admin.findById(oldApp.assignedAgentId);
-        if (agent && agent.currentLoad > 0) {
-            agent.currentLoad -= 1;
-            await agent.save();
-        }
+        if (agent && agent.currentLoad > 0) { agent.currentLoad -= 1; await agent.save(); }
     }
 
-    res.json({ msg: 'Updated', app });
+    if(sendPushNotification) {
+        const user = await User.findById(app.userId);
+        if(user?.pushToken) sendPushNotification(user.pushToken, 'Status Update', `Status: ${status}`, { applicationId: app._id });
+    }
+
+    res.json({ msg: 'Status Updated', app });
   } catch (err) { res.status(500).send('Server Error'); }
 });
 
-// Complete Order
 router.post('/complete', adminAuth, async (req, res) => {
   try {
     const { applicationId, pdfUrl } = req.body;
@@ -368,35 +364,31 @@ router.post('/complete', adminAuth, async (req, res) => {
     app.userRead = false;
     await app.save();
 
-    // Reduce Load
     if (app.assignedAgentId) {
         const agent = await Admin.findById(app.assignedAgentId);
-        if (agent && agent.currentLoad > 0) {
-            agent.currentLoad -= 1;
-            await agent.save();
-        }
+        if (agent && agent.currentLoad > 0) { agent.currentLoad -= 1; await agent.save(); }
     }
     
     if(logAction) logAction(req.admin.id, req.admin.firstName, req.admin.role, 'ORDER_COMPLETED', `Completed ${app.trackingId}`, app.trackingId);
+    
+    const user = await User.findById(app.userId);
+    if(user?.pushToken) sendPushNotification(user.pushToken, 'Order Completed', 'Download PDF now', { applicationId: app._id });
 
     res.json({ msg: 'Completed!', app });
   } catch (err) { res.status(500).send('Server Error'); }
 });
 
-// Reassign Task
 router.put('/reassign/:id', adminAuth, async (req, res) => {
   try {
     const { newAgentId } = req.body;
     const app = await Application.findById(req.params.id);
     if (!app) return res.status(404).json({ msg: 'Not found' });
 
-    // Reduce Old
     if (app.assignedAgentId) {
         const old = await Admin.findById(app.assignedAgentId);
         if (old && old.currentLoad > 0) { old.currentLoad -= 1; await old.save(); }
     }
 
-    // Increase New
     if (newAgentId) {
         const newA = await Admin.findById(newAgentId);
         if (newA) {
