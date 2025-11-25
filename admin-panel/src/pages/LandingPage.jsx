@@ -3,7 +3,7 @@ import { Download, ShieldCheck, Zap, Users } from 'lucide-react';
 
 export default function LandingPage() {
   // Yahan apna APK ka Direct Link dalein (Google Drive / GitHub Release)
-  const APK_LINK = "YOUR_GOOGLE_DRIVE_DIRECT_LINK_HERE";
+  const APK_LINK = "https://expo.dev/accounts/udaan195/projects/sewaone/builds/40966da2-c850-461d-96c4-e1e5e5869b45";
 
   return (
     <div style={{fontFamily: 'sans-serif', color: '#333'}}>
