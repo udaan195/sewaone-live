@@ -39,7 +39,7 @@ export default function JobDetailsScreen({ route, navigation }) {
   const [checkingStatus, setCheckingStatus] = useState(true);
 
   // 🔗 Yahan apna app download link daalo
-  const APP_LINK = "https://sewaone.vercel.app/download";
+  const APP_LINK = "https://expo.dev/accounts/udaan195/projects/sewaone/builds/40966da2-c850-461d-96c4-e1e5e5869b45";
 
   // 📤 SHARE FUNCTION (pehle wale code se liya gaya)
   const handleShare = async () => {
